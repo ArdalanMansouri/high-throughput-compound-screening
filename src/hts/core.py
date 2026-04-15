@@ -60,10 +60,12 @@ def map_num_to_letter(df, col='Row', inplace=True):
                letter in enumerate(string.ascii_uppercase, start=1)
     }
 
+    mapped = df[col].map(row_map) # Map the column values using the row_map
+
     if inplace:
-        df[col].replace(row_map, inplace=True)
+        df[col] = mapped
         return None
     else:
         result = df.copy()
-        result[col] = result[col].replace(row_map)
+        result[col] = mapped
         return result

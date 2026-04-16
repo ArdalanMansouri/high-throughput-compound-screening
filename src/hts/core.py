@@ -181,3 +181,120 @@ def plate_normalizer (
 
     # Use two variable to get the newly modifed untread and treated dfs. 
     return final_untreated_df, final_treated_df
+
+
+class Categorizer:
+
+    """Make a threshold for low and high EV-uptakers. 
+    Next, Label the samples based on their function. The threshold is 
+    determined using the untreated (Control) group."""
+    
+    def __init__(self, normalized_column:str, df_untreated=None, 
+                 df_treated=None, func="mean", sd=2, 
+                 lower_outlier="Inhibitors", normal="Normal", 
+                 higher_outlier="Inducers"):
+        
+        """ 
+        Args: 
+            df_untreated: The control group
+            df_treated: The sample group 
+            normalized_column: The column that contains the normalized values 
+                of the variable that you want to used for defining the 
+                threshold.
+            func: The aggregation function for calculating the threshold. 
+                It may be "mean" or "median".
+            sd: The number of standard deviation away from the mean/median. 
+                You may use 1, 2, 3 for 1SD, 2SD, and 3SD, respectively. 
+            lower_outlier: The value(name) you want to give to the group of 
+                values below the lower threshold. The default value is 
+                "Inhibitors".
+            normal: The value(name) you want to give to the group of values 
+                bewtween the two lower and upper threshold level. 
+                The default value is "Normal".
+            higher_outlier: The value(name) you want to give to the group of 
+                values above the upper threshold. 
+                The default value is "Inducers".
+
+        Returns:
+            pd.DataFrame: The treated dataframe including a new 
+                category column based on the SD threshold.
+        """
+        import pandas as pd 
+    
+        self.df_untreated = df_untreated
+        self.df_treated = df_treated
+        self.normalized_column = normalized_column
+        self.func = func
+        self.sd = sd
+        self.lower_outlier = lower_outlier
+        self.normal = normal
+        self.higher_outlier = higher_outlier
+        
+        
+    def threshold_generator(self):
+        
+        # This is either mean or median of untreated (control), 
+        # depending on the desired parameter
+        self.total_parameter_control = self.df_untreated[
+            self.normalized_column
+        ].agg(self.func) 
+        
+        # Make 1sd or sd, depending on the input of sd in the function
+        self.std_control = (
+            self.df_untreated[self.normalized_column].std()
+        ) * self.sd 
+        
+        self.plus_sd = (
+            self.total_parameter_control + self.std_control
+        ) # upper threshold
+        self.minus_sd = (
+            self.total_parameter_control - self.std_control
+        ) # lower threshold
+        
+        print(
+            f"The values for control {self.func}, {self.func}-{self.sd}SD "
+            f"and {self.func}+{self.sd}SD, respectively:  "
+            f"{self.total_parameter_control}, {self.minus_sd}, "
+            f"{self.plus_sd}"
+        )
+        
+        # the control-related values: mean, lower_thresh, higher_thresh
+        return self.total_parameter_control, self.minus_sd, self.plus_sd 
+    
+    def category_generator(self):
+        self.df_treated = self.df_treated.copy()
+        cat_col = 'Category' + "_by_" + str(self.sd) + "SD"
+        
+        self.df_treated.loc[
+            self.df_treated[self.normalized_column] < self.minus_sd, 
+            cat_col
+        ] = self.lower_outlier
+        
+        self.df_treated.loc[
+            (self.df_treated[self.normalized_column] >= self.minus_sd) & 
+            (self.df_treated[self.normalized_column] <= self.plus_sd), 
+            cat_col
+        ] = self.normal
+        
+        self.df_treated.loc[
+            self.df_treated[self.normalized_column] > self.plus_sd, 
+            cat_col
+        ] = self.higher_outlier
+
+        inhibitors = len(
+            self.df_treated.loc[self.df_treated[cat_col] == self.lower_outlier]
+        )
+        inducers = len(
+            self.df_treated.loc[self.df_treated[cat_col] == self.higher_outlier]
+        )
+        total = len(self.df_treated)
+
+        print(
+            (f"***Based on {self.sd}SD*** \nFrom the total rows number of "
+             f"{total:,} in treated group: \n{inhibitors:,} or"),
+            (f"{(inhibitors/total)*100:.2f}% of the rows are inhibitors \n"
+             f"and \n{inducers:,} or {(inducers/total)*100:.2f}% of the "
+             f"rows are inducers"),
+            f"\n\nTHE NEW DATAFRAME IS GENERATED."
+        )
+        return self.df_treated

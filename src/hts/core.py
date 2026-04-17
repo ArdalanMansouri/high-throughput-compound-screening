@@ -183,6 +183,98 @@ def plate_normalizer (
     return final_untreated_df, final_treated_df
 
 
+def plot_plate(df, plate_identifier, plate_number, 
+               variable, aggregation='mean', rowlabel='Row', 
+               columnlabel='Column', colormap="Reds", fig_scale_factor=0.5):
+    """Draw a plate and shows the value of a variable as a color. This will 
+    look like a heatman in the shape of a plate.
+    
+    Args:
+        df: The dataframe you want to use as the input data.
+        plate_identifier: The column of df that has the ID of each plate.
+        plate_number: The id that you want to use for drawing the plate. 
+            This is one value of the plate_identifier column. 
+        variable: The column you want to use as the values of each well of 
+            the plate. 
+        aggregation: The method to combine the data. For example, you may use 
+            sum, median, mean, etc. The default is mean.
+        rowlabel: The column that has values for labelling for each row of the 
+            plate. Normally, each row of plate has an alphabetic value.
+        columnlabel: The column that has values for labelling for each column 
+            of the plate. Normally, each column of plate has a number value.
+        colormap: The range of colors that you want to use for the range of 
+            values being plotted. 
+        fig_scale_factor: change the size of the figure. 
+
+    Returns:
+        A plate-shaped heatmap 
+    
+    """
+    import pandas as pd 
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib.collections import PatchCollection 
+    # Make sure the datafram columns related to "columns" and the column with 
+    # the id of the plate are integer and not object.
+    data = df.copy()
+    data[columnlabel] = data[columnlabel].astype('int64')
+    data[plate_identifier] = data[plate_identifier].astype('int64')
+    
+    
+    # Filter data to the desired plate
+    data = data[data[plate_identifier] == plate_number]
+
+    # Make a pivot table in plate format, with variable of interest
+    data = data.pivot_table(
+        index=rowlabel, 
+        columns=columnlabel, 
+        values=variable, 
+        aggfunc=aggregation
+    ).sort_index(ascending=False)
+    
+    numrows = len(data.index)
+    numcols = len(data.columns)
+    ylabels = data.index.tolist()
+    xlabels = data.columns.tolist()
+
+    x, y = np.meshgrid(np.arange(numcols), np.arange(numrows))
+
+    # The color bar "steals" 15% of the x axis, which should be compensated 
+    # for in order to keep round circles.
+    fig, ax = plt.subplots(
+        figsize=(numcols/(1-0.15)*fig_scale_factor, numrows*fig_scale_factor)
+    )
+
+    circles = [plt.Circle((j,i), radius=0.4) for j, i in zip(x.flat, y.flat)]
+    col = PatchCollection(circles, array=data.values.flatten(), cmap=colormap)
+    ax.add_collection(col)
+
+    # Prevent autoscaling to keep the circles round and not stretched. 
+    # This is important for making more artists, such as the x marks for 
+    # missing values.
+    ax.autoscale(False)
+
+    # Mark the missing values with an x. The missing values are the wells that 
+    # have been eliminated. 
+    nan_mask = np.isnan(data.values)
+    for row_idx, col_idx in zip(*np.where(nan_mask)):
+        ax.plot(col_idx, row_idx, 'x', color='gray',
+                markersize=10, markeredgewidth=1.5)
+
+
+    ax.set(xticks=np.arange(numcols), yticks=np.arange(numrows),
+           xticklabels=xlabels, yticklabels=ylabels)
+
+    ax.set_xticks(np.arange(numcols+1)-0.5, minor=True)
+    ax.set_yticks(np.arange(numrows+1)-0.5, minor=True)
+    ax.grid(which='minor')
+
+    fig.colorbar(col)
+    plt.title(variable)
+    plt.show()
+    print(data)
+
+
 class Categorizer:
 
     """Make a threshold for low and high EV-uptakers. 

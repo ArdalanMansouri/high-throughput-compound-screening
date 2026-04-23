@@ -48,6 +48,6 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 
 ## Acknowledgments
 
-This project is funded by Marie Curie Actions under the European Union’s Horizon 2020 research and innovation program for project proEVLifeCycle.
+This project is funded by Marie Curie Actions under the European Union’s Horizon 2020 research and innovation program for project proEVLifeCycle, grant No 860303.
 
 Special thanks to the open-source community for providing the foundational libraries (e.g., Pandas, Matplotlib, Seaborn) that make this project possible.

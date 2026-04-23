@@ -1,3 +1,10 @@
+import string
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection 
+
+#%%
 def load_plates(
     folder_dict: dict,
     filename: str = "PlateResults.txt",
@@ -39,8 +46,6 @@ def load_plates(
     return pd.concat(all_dfs, ignore_index=True)
 
 
-import string
-
 def map_num_to_letter(df, col='Row', inplace=True):
     """
     Maps integer row numbers (1–26) to uppercase alphabet letters.
@@ -53,6 +58,7 @@ def map_num_to_letter(df, col='Row', inplace=True):
     Returns:
         pd.DataFrame 
     """
+
     row_map = {
         i: letter for i, 
                letter in enumerate(string.ascii_uppercase, start=1)
@@ -91,7 +97,6 @@ def plate_normalizer (
         final_untreated_df: The normalized df for the untreated samples        
     """
 
-    import pandas as pd 
     # Distinguishing treated and untreated samples after merging the data at 
     # the end. 
     df_untreated = df_untreated.copy()
@@ -210,10 +215,7 @@ def plot_plate(df, plate_identifier, plate_number,
         A plate-shaped heatmap 
     
     """
-    import pandas as pd 
-    import numpy as np
-    import matplotlib.pyplot as plt
-    from matplotlib.collections import PatchCollection 
+  
     # Make sure the datafram columns related to "columns" and the column with 
     # the id of the plate are integer and not object.
     data = df.copy()
@@ -311,7 +313,6 @@ class Categorizer:
             pd.DataFrame: The treated dataframe including a new 
                 category column based on the SD threshold.
         """
-        import pandas as pd 
     
         self.df_untreated = df_untreated
         self.df_treated = df_treated
